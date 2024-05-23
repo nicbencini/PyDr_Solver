@@ -1,4 +1,14 @@
+import os
+import sys
 
+parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(parent_dir)
+
+import model.element as elm
+
+new_bar = elm.bar(1,2,3,4)
+
+print(new_bar.length)
 
 class local_stiffness_matrix:
 
@@ -31,6 +41,6 @@ class local_stiffness_matrix:
         return 2*E*I/L
     
 
-    
+
 
 
