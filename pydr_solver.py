@@ -1,4 +1,6 @@
 import time
+import model as mdl
+import model.element as el
 
 #Sign convention
 
@@ -9,10 +11,15 @@ import time
 # Counter Clockwise moments are negative moments
 
 
+input('Run solver?')
+
 startTime = time.time()
 print('Solver Initialized.....')
 
-input('Run solver?')
+bar = el.bar(1,2,3,4)
+
+print (bar.release_a)
+
 
 executionTime = (time.time() - startTime)
 print('Execution time in seconds: ' + str(executionTime))
