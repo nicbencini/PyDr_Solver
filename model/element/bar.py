@@ -1,12 +1,11 @@
 
-
 class bar:
 
     def __init__(self, _id : str, 
                  point_a : int, 
                  point_b : int, 
                  length : float, 
-                 section : str = 'default' , 
+                 section : str, 
                  local_plane : str = None, 
                  release_a : str = 'XXXXXX', 
                  release_b : str = 'XXXXXX', 
