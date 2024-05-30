@@ -1,6 +1,8 @@
 import time
-import model as mdl
-import model.element as el
+import numpy as np
+
+from model import element
+from model import property
 
 #Sign convention
 
@@ -11,12 +13,17 @@ import model.element as el
 # Counter Clockwise moments are negative moments
 
 
-input('Run solver?')
+#input('Run solver?')
 
 startTime = time.time()
 print('Solver Initialized.....')
 
-bar = el.bar(1,2,3,4)
+node1 = element.node(0,0,0)
+node2 = element.node(0,0,1)
+section = property.section.default()
+orientation_vector = np.array([1,0,0])
+
+bar = element.bar(node1,node2,section,orientation_vector)
 
 print (bar.release_a)
 

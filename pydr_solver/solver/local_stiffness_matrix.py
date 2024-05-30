@@ -1,18 +1,23 @@
 import os
 import sys
-import numpy as np
+
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
 
+import numpy as np
 import model.element as elm
 import model.property as prp
 
 class local_stiffness_matrix:
 
     
-    def build_local_stiffness_matric(bar : elm.bar, section : prp.section, material : prp.material):
+    def build_local_stiffness_matrix(bar : elm.bar):
         
+
+        section = bar.section
+        material = section.material
+
         A = section.A 
         E = material.E 
         Iz = section.Iz
@@ -92,7 +97,7 @@ class local_stiffness_matrix:
 
                 row_values = np.divide(Kl[count,:],divisor)
                 col_values = Kl[:,count]
-                
+
                 subtraction_vector = np.outer(col_values,row_values)
 
                 Kl = np.subtract(Kl,subtraction_vector)
