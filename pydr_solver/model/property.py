@@ -56,7 +56,7 @@ class section:
 
     def default():
 
-        default_section = section('UC305x305x970',
+        default_section = section('UC305x305x97',
                                   material.default(),
                                   0.0123, # sqm
                                   0.0002225, # m^4

@@ -18,14 +18,6 @@ from model import property
 startTime = time.time()
 print('Solver Initialized.....')
 
-node1 = element.node(0,0,0)
-node2 = element.node(0,0,1)
-section = property.section.default()
-orientation_vector = np.array([1,0,0])
-
-bar = element.bar(node1,node2,section,orientation_vector)
-
-print (bar.release_a)
 
 
 executionTime = (time.time() - startTime)

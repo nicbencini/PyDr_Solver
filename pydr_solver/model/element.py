@@ -12,6 +12,12 @@ class node:
         self.y = y
         self.z = z
 
+    def to_string(self):
+        return f'Node at ({self.x},{self.y},{self.z})'
+    
+    def to_array(self):
+        return np.array([self.x,self.y,self.z])
+
 
 class bar:
 
@@ -24,8 +30,8 @@ class bar:
                  release_b : str = 'XXXXXX',
                  ):
 
-        self.point_a = node_a
-        self.point_b = node_b
+        self.node_a = node_a
+        self.node_b = node_b
         self.section = section
         self.orientation_vector = orientation_vector
         self.release_a = release_a
