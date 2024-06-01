@@ -1,6 +1,6 @@
 import numpy as np
 
-class material:
+class Material:
 
     def __init__ (self,
                   name : str,
@@ -9,7 +9,10 @@ class material:
                   shear_modulus : float, # MPa
                   coeff_thermal_expansion : float, # 1/c
                   damping_ratio : float,
-                  density : float # kN/m^3
+                  density : float, # kN/m^3
+                  type : str = None,
+                  region: str = None,
+                  embodied_carbon : float = None #kgCO2e/m^3
                   ):
 
         self.name = name
@@ -19,27 +22,33 @@ class material:
         self.coeff_thermal_expansion = coeff_thermal_expansion
         self.damping_ratio = damping_ratio
         self.density = density
+        self.type = type
+        self.region = region
+        self.embodied_carbon = embodied_carbon
 
     @staticmethod
 
     def default():
 
-        default_material = material('steel',
+        default_material = Material('steel',
                                     210000, # MPa
                                     0.3,
                                     76903.07, # MPa
                                     0.0000117, # 1/c
                                     0,
                                     76.9729, # kN/m^3
+                                    'STEEL',
+                                    'UK',
+                                    12090 #kgCO2e/m^3
                                     )
 
         return default_material
 
-class section:
+class Section:
 
     def __init__ (self,
                   name : str,
-                  material : material,
+                  material : Material,
                   area : float, # sqm
                   izz : float, # m^4
                   iyy : float, # m^4
@@ -56,8 +65,8 @@ class section:
 
     def default():
 
-        default_section = section('UC305x305x97',
-                                  material.default(),
+        default_section = Section('UC305x305x97',
+                                  Material.default(),
                                   0.0123, # sqm
                                   0.0002225, # m^4
                                   0.00007308, # m^4
@@ -65,7 +74,7 @@ class section:
 
         return default_section
 
-class local_plane:
+class LocalPlane:
 
     def __init__(self,
                  origin : np.array,
