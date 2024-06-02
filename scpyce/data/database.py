@@ -25,7 +25,7 @@ class Model:
             section TEXT NOT NULL,
             orientation_vector TEXT NOT NULL,
             release_a TEXT NOT NULL,
-            release_b TEXT NOT NULL
+            release_b TEXT NOT NULL,
         );
         """
         

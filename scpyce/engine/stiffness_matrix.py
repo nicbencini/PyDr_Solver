@@ -12,12 +12,8 @@ from objects import property
 class LocalStiffnessMatrix:
 
     
-    def build_local_stiffness_matrix(bar : element.Bar):
+    def build_local_stiffness_matrix(bar, section, release_a, release_b,  material):
         
-
-        section = bar.section
-        material = section.material
-
         A = section.A 
         E = material.E 
         Iz = section.Iz
@@ -26,8 +22,6 @@ class LocalStiffnessMatrix:
         J =  material.J
         L = bar.L 
 
-        release_a = bar.release_a
-        release_b = bar.release_a
         local_plane = bar.local_plane
 
         # Axial coefficient
@@ -106,49 +100,38 @@ class LocalStiffnessMatrix:
             count += 1
 
         #Build Global stiffness matrix
-        Kg = TM.T.dot(Kl).dot(TM) 
+        Kg = TM.T.dot(Kl).dot(TM)
+
+        return Kl, Kg 
 
 class GlobalStiffnessMatrix:
 
     """description of class"""
 
-    nDof_structure = None
-    primary_stiffness_matrix = None
-    structural_stiffness_matrix = None
-    bar_Kl_dict={}
-    bar_TM_dict={}
-    flag_list=[]
-
-    primary_matrix_data = []
-    primary_matrix_row = []
-    primary_matrix_col = []
-
-    removed_indices_list = []
-
-
     def __init__(self, model):
-
-        
-        self.model = model
 
         node_cursor = model.connection.cursor()
         node_id_list = node_cursor.execute('SELECT _id FROM element_node').fetchall()
-
-        self.ndof_primary =  len(node_id_list)*6
         node_cursor.close()
 
+        self.model = model
+        self.bar_divisions = 4
+        self.ndof_primary =  len(node_id_list)*self.bar_divisions*6
+
+
+        if((self.ndof_primary ** 2)*8 > 1e+9):
+            raise RuntimeError('Stiffness matrix size exceeds 1GB. Reduce the number of elements in the model')
+        else:
+            self.primarty_stiffness_matrix = np.zeros((self.ndof_primary,self.ndof_primary),dtype=np.int8)
 
     def build_primary(self):
 
         bar_cursor = self.model.connection.cursor()
-        bar_Update_cursor = self.model.connection.cursor()
         bar_cursor.execute('SELECT * FROM element_bar') 
-        
-        bar_divs = 4
 
         count = 0
 
-        node_index_counter = (StiffnessMatrix.nDof_primary/6) - 1
+        node_index_counter = (self.ndof_primary/6) - 1
 
         for bar in bar_cursor:
 
@@ -156,23 +139,22 @@ class GlobalStiffnessMatrix:
             bar_start_index = bar[1]
             bar_end_index = bar[2]
             sub_nodes_dict = {}
-            
 
             section_name = (str(bar[4]),)
 
-            section_cursor = StiffnessMatrix.data_connection.cursor()
+            section_cursor = self.model.connection.cursor()
             section = section_cursor.execute("SELECT * FROM property_section WHERE _id = ?",section_name).fetchone()
             section_cursor.close()
 
             material_name = (str(section[1]),)
 
-            material_cursor = StiffnessMatrix.data_connection.cursor()
+            material_cursor = self.model.connection.cursor()
             material = material_cursor.execute("SELECT * FROM property_material WHERE _id = ?",material_name).fetchone()
             material_cursor.close()
-
-            StiffnessMatrix.bar_Kl_dict[bar_id] = []
+          
+            #self.bar_Kl_dict[bar_id] = []
             
-            for k in range(bar_divs):
+            for k in range(self.bar_divisions):
 
                 node_i_index = None
                 node_j_index = None
@@ -185,44 +167,25 @@ class GlobalStiffnessMatrix:
                     release_a = bar[6]
                 else:
                     node_i_index = node_index_counter
-                    sub_nodes_dict[str(k/bar_divs)] = int(node_i_index)
+                    sub_nodes_dict[str(k/self.bar_divs)] = int(node_i_index)
                     release_a = "XXXXXX"
 
-                if k == (bar_divs - 1):
+                if k == (self.bar_divs - 1):
                     node_j_index = bar_end_index
                     sub_nodes_dict[str(1)] = int(bar_end_index)
                     release_b = bar[7]
                 else:
                     node_j_index = node_index_counter + 1
                     node_index_counter += 1
-
-                    
-
                     release_b = "XXXXXX"
 
-                    for z in range (6):
-                        StiffnessMatrix.nDof_primary += 1
-
-               
-                
-                bar_stiffness_matrix = LocalStiffnessMatrix(bar, section, release_a, release_b,  material, bar_divs)
-
-                bar_stiffness_matrix.Generate()
-
+                bar_stiffness_matrix = LocalStiffnessMatrix(bar, section, release_a, release_b,  material)
 
                 Kl = bar_stiffness_matrix.Kl
                 Kg = bar_stiffness_matrix.Kg
     
-                StiffnessMatrix.bar_Kl_dict[bar_id].append(Kl)
-                #StiffnessMatrix.bar_TM_dict[bar_id].append(Kl)
-                     
-                """
-                if count == 0:  
-                    bar_stiffness_matrix.plot_Kl()
-                    bar_stiffness_matrix.plot_Kg()
-                count += 1
-                """
-                
+                self.bar_Kl_dict[bar_id].append(Kl)
+
                 # build list of bar local stifness matrices to use in calculation of results
 
                 K11 = Kg[0:6,0:6]
@@ -244,62 +207,43 @@ class GlobalStiffnessMatrix:
                             row_index_11 = int(i + 6*node_i_index)
                             col_index_11 = int(j + 6*node_i_index)
 
-                            StiffnessMatrix.primary_matrix_data.append(K11_data) 
-                            StiffnessMatrix.primary_matrix_row.append(row_index_11)
-                            StiffnessMatrix.primary_matrix_col.append(col_index_11)
-
+                            self.primarty_stiffness_matrix[row_index_11,col_index_11] = self.primarty_stiffness_matrix[row_index_11,col_index_11] + K11_data
 
                         if(K12_data != 0):
 
                             row_index_12 = int(i + 6*node_i_index)
                             col_index_12 = int(j + 6*node_j_index)
 
-                            StiffnessMatrix.primary_matrix_data.append(K12_data) 
-                            StiffnessMatrix.primary_matrix_row.append(row_index_12)
-                            StiffnessMatrix.primary_matrix_col.append(col_index_12)
+                            self.primarty_stiffness_matrix[row_index_12,col_index_12] = self.primarty_stiffness_matrix[row_index_12,col_index_12] + K12_data
 
                         if(K21_data != 0):
 
                             row_index_21 = int(i + 6*node_j_index)
                             col_index_21 = int(j + 6*node_i_index)
 
-                            StiffnessMatrix.primary_matrix_data.append(K21_data) 
-                            StiffnessMatrix.primary_matrix_row.append(row_index_21)
-                            StiffnessMatrix.primary_matrix_col.append(col_index_21)
+                            self.primarty_stiffness_matrix[row_index_21,col_index_21] = self.primarty_stiffness_matrix[row_index_21,col_index_21] + K21_data
 
                         if(K22_data != 0):
 
                             row_index_22 = int(i+ 6*node_j_index)
                             col_index_22 = int(j + 6*node_j_index)
                         
-
-                            StiffnessMatrix.primary_matrix_data.append(K22_data) 
-                            StiffnessMatrix.primary_matrix_row.append(row_index_22)
-                            StiffnessMatrix.primary_matrix_col.append(col_index_22)
-
-
-            subnode_json_data = json.dumps(sub_nodes_dict)
-
-            sqlite_insert_query = """UPDATE element_bar SET sub_nodes = ? WHERE _id = ?"""
-
-            result_string = (subnode_json_data, bar_id)
-            
-            bar_Update_cursor.execute(sqlite_insert_query,result_string)
-
-        bar_cursor.close()
-        bar_Update_cursor.close()
-
-        Ks = csc_matrix((StiffnessMatrix.primary_matrix_data, (StiffnessMatrix.primary_matrix_row, StiffnessMatrix.primary_matrix_col)), shape = (StiffnessMatrix.nDof_primary , StiffnessMatrix.nDof_primary ))
-
-        #Ks = Ks[Ks.getnnz(1)>0][:,Ks.getnnz(0)>0]
-
-        StiffnessMatrix.primary_stiffness_matrix = Ks
-
-        print(node_index_counter)
-
-        print("Built Stiffness Matrix ....")
+                            self.primarty_stiffness_matrix[row_index_22,col_index_22] = self.primarty_stiffness_matrix[row_index_22,col_index_22] + K22_data
 
 class StructuralStiffnessMatrix:
+
+
+    nDof_structure = None
+    structural_stiffness_matrix = None
+    bar_Kl_dict={}
+
+    flag_list=[]
+
+
+
+    removed_indices_list = []
+
+
     def build_structural(self):
 
 

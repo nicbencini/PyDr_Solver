@@ -44,6 +44,7 @@ class Bar:
         self.orientation_vector = orientation_vector
         self.release_a = release_a
         self.release_b = release_b
+        self.sub_divisions = sub_divisions
         self.id = str(uuid.uuid4())
 
 class Support:
