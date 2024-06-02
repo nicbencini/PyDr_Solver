@@ -39,12 +39,13 @@ def bar_test():
 def pyramid_test():
 
     startTime = time.time()
-    print('Bar Test Initialized.....')
+    print('pyramid Test Initialized.....')
 
     from data import database
     from objects import element
     from objects import property
     from objects import load
+    from engine import stiffness_matrix
 
     node1 = element.Node(1,1,2)
     node2 = element.Node(2,0,0)
@@ -82,6 +83,9 @@ def pyramid_test():
     structural_model.add_support(support4)
 
     structural_model.add_point_load(load1)
+
+    sm = stiffness_matrix.GlobalStiffnessMatrix(structural_model)
+    print(sm.ndof_primary)
 
     structural_model.close_connection()
 

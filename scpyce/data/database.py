@@ -175,7 +175,7 @@ class Model:
 
         else:
             
-            node_index = cur.execute(f"SELECT COUNT(*) FROM element_node").fetchone()[0]
+            node_index = cur.execute("SELECT COUNT(*) FROM element_node").fetchone()[0]
 
             node_query = """
             INSERT INTO element_node (
