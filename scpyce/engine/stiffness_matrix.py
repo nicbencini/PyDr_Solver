@@ -8,21 +8,28 @@ import numpy as np
 import sqlite3
 from objects import element
 from objects import property
+from util import vector_math
 
 class LocalStiffnessMatrix:
 
     
-    def build_local_stiffness_matrix(bar, section, release_a, release_b,  material):
+    def build(section_area, 
+              youngs_modulus,
+              moment_of_intertia_z,
+              moment_of_intertia_y,
+              shear_modulus,
+              length,
+              local_plane,
+              release_a,
+              release_b):
         
-        A = section.A 
-        E = material.E 
-        Iz = section.Iz
-        Iy = section.Iy 
-        G =  material.G
-        J =  material.J
-        L = bar.L 
-
-        local_plane = bar.local_plane
+        A = section_area
+        E = youngs_modulus * 1000000 #FIX UNITS
+        Iz = moment_of_intertia_z
+        Iy = moment_of_intertia_y
+        G =  shear_modulus * 1000000 #FIX UNITS
+        J =  Iz + Iy
+        L = length
 
         # Axial coefficient
         a1 = E*A/L 
@@ -50,7 +57,7 @@ class LocalStiffnessMatrix:
 
     
         #Build local stiffness matrix
-        kl = [[  a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ],
+        Kl = [[  a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ],
               [ 0.0 ,  v1 , 0.0 , 0.0 , 0.0 , -m1 , 0.0 , -v1 , 0.0 , 0.0 , 0.0 , -m1 ],
               [ 0.0 , 0.0 ,  v3 , 0.0 ,  m4 , 0.0 , 0.0 , 0.0 , -v3 , 0.0 ,  m4 , 0.0 ],
               [ 0.0 , 0.0 , 0.0 ,  t1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -t1 , 0.0 , 0.0 ],
@@ -64,12 +71,13 @@ class LocalStiffnessMatrix:
               [ 0.0 , -v2 , 0.0 , 0.0 , 0.0 ,  m2 , 0.0 ,  v2 , 0.0 , 0.0 , 0.0 ,  m3 ],
               ]
 
+
         #Build the full transformation matrix for this element
         TM = np.zeros((12,12))
 
-        T_repeat =  np.array([list(local_plane.XVector.values()),
-                              list(local_plane.YVector.values()),
-                              list(local_plane.ZVector.values())]
+        T_repeat =  np.array([local_plane[1],
+                              local_plane[2],
+                              local_plane[3]]
                               )
         
         TM[0:3,0:3] = T_repeat
@@ -136,9 +144,8 @@ class GlobalStiffnessMatrix:
         for bar in bar_cursor:
 
             bar_id = bar[0]
-            bar_start_index = bar[1]
-            bar_end_index = bar[2]
-            sub_nodes_dict = {}
+            node_i_index  = bar[1]
+            node_j_index  = bar[2]
 
             section_name = (str(bar[4]),)
 
@@ -153,82 +160,57 @@ class GlobalStiffnessMatrix:
             material_cursor.close()
           
             #self.bar_Kl_dict[bar_id] = []
-            
-            for k in range(self.bar_divisions):
 
-                node_i_index = None
-                node_j_index = None
-                release_a = None
-                release_b = None
+            bar_stiffness_matrix = LocalStiffnessMatrix(bar, section,  material)
 
-                if k == 0:
-                    node_i_index = bar_start_index
-                    sub_nodes_dict[str(0)] = int(bar_start_index)
-                    release_a = bar[6]
-                else:
-                    node_i_index = node_index_counter
-                    sub_nodes_dict[str(k/self.bar_divs)] = int(node_i_index)
-                    release_a = "XXXXXX"
+            Kl = bar_stiffness_matrix.Kl
+            Kg = bar_stiffness_matrix.Kg
 
-                if k == (self.bar_divs - 1):
-                    node_j_index = bar_end_index
-                    sub_nodes_dict[str(1)] = int(bar_end_index)
-                    release_b = bar[7]
-                else:
-                    node_j_index = node_index_counter + 1
-                    node_index_counter += 1
-                    release_b = "XXXXXX"
+            self.bar_Kl_dict[bar_id].append(Kl)
 
-                bar_stiffness_matrix = LocalStiffnessMatrix(bar, section, release_a, release_b,  material)
+            # build list of bar local stifness matrices to use in calculation of results
 
-                Kl = bar_stiffness_matrix.Kl
-                Kg = bar_stiffness_matrix.Kg
-    
-                self.bar_Kl_dict[bar_id].append(Kl)
-
-                # build list of bar local stifness matrices to use in calculation of results
-
-                K11 = Kg[0:6,0:6]
-                K12 = Kg[0:6,6:12]
-                K21 = Kg[6:12,0:6]
-                K22 = Kg[6:12,6:12]
+            K11 = Kg[0:6,0:6]
+            K12 = Kg[0:6,6:12]
+            K21 = Kg[6:12,0:6]
+            K22 = Kg[6:12,6:12]
 
 
-                for i in range (6):
-                    for j in range(6):
+            for i in range (6):
+                for j in range(6):
 
-                        K11_data = K11[i,j]
-                        K12_data = K12[i,j]
-                        K21_data = K21[i,j]
-                        K22_data = K22[i,j]
+                    K11_data = K11[i,j]
+                    K12_data = K12[i,j]
+                    K21_data = K21[i,j]
+                    K22_data = K22[i,j]
 
-                        if(K11_data != 0):
-                        
-                            row_index_11 = int(i + 6*node_i_index)
-                            col_index_11 = int(j + 6*node_i_index)
+                    if(K11_data != 0):
+                    
+                        row_index_11 = int(i + 6*node_i_index)
+                        col_index_11 = int(j + 6*node_i_index)
 
-                            self.primarty_stiffness_matrix[row_index_11,col_index_11] = self.primarty_stiffness_matrix[row_index_11,col_index_11] + K11_data
+                        self.primarty_stiffness_matrix[row_index_11,col_index_11] = self.primarty_stiffness_matrix[row_index_11,col_index_11] + K11_data
 
-                        if(K12_data != 0):
+                    if(K12_data != 0):
 
-                            row_index_12 = int(i + 6*node_i_index)
-                            col_index_12 = int(j + 6*node_j_index)
+                        row_index_12 = int(i + 6*node_i_index)
+                        col_index_12 = int(j + 6*node_j_index)
 
-                            self.primarty_stiffness_matrix[row_index_12,col_index_12] = self.primarty_stiffness_matrix[row_index_12,col_index_12] + K12_data
+                        self.primarty_stiffness_matrix[row_index_12,col_index_12] = self.primarty_stiffness_matrix[row_index_12,col_index_12] + K12_data
 
-                        if(K21_data != 0):
+                    if(K21_data != 0):
 
-                            row_index_21 = int(i + 6*node_j_index)
-                            col_index_21 = int(j + 6*node_i_index)
+                        row_index_21 = int(i + 6*node_j_index)
+                        col_index_21 = int(j + 6*node_i_index)
 
-                            self.primarty_stiffness_matrix[row_index_21,col_index_21] = self.primarty_stiffness_matrix[row_index_21,col_index_21] + K21_data
+                        self.primarty_stiffness_matrix[row_index_21,col_index_21] = self.primarty_stiffness_matrix[row_index_21,col_index_21] + K21_data
 
-                        if(K22_data != 0):
+                    if(K22_data != 0):
 
-                            row_index_22 = int(i+ 6*node_j_index)
-                            col_index_22 = int(j + 6*node_j_index)
-                        
-                            self.primarty_stiffness_matrix[row_index_22,col_index_22] = self.primarty_stiffness_matrix[row_index_22,col_index_22] + K22_data
+                        row_index_22 = int(i+ 6*node_j_index)
+                        col_index_22 = int(j + 6*node_j_index)
+                    
+                        self.primarty_stiffness_matrix[row_index_22,col_index_22] = self.primarty_stiffness_matrix[row_index_22,col_index_22] + K22_data
 
 class StructuralStiffnessMatrix:
 

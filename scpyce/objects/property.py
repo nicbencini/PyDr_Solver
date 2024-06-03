@@ -59,7 +59,6 @@ class Section:
         self.area = area
         self.izz = izz
         self.iyy = iyy
-        self.ip = izz + iyy
 
     @staticmethod
 
