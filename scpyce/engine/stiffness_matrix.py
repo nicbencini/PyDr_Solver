@@ -32,6 +32,7 @@ class LocalStiffnessMatrix:
         L = length
 
         # Axial coefficient
+        
         a1 = E*A/L 
         
         #Torsional coefficient
@@ -67,23 +68,10 @@ class LocalStiffnessMatrix:
               [ 0.0 , -v1 , 0.0 , 0.0 , 0.0 ,  m1 , 0.0 ,  v1 , 0.0 , 0.0 , 0.0 ,  m1 ],
               [ 0.0 , 0.0 , -v3 , 0.0 , -m4 , 0.0 , 0.0 , 0.0 ,  v3 , 0.0 , -m4 , 0.0 ],
               [ 0.0 , 0.0 , 0.0 , -t1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ,  t1 , 0.0 , 0.0 ],
-              [ 0.0 , 0.0 ,  v4 , 0.0 ,  m5 , 0.0 , 0.0 , 0.0 , -v4 , 0.0 ,  m6 , 0.0 ],
-              [ 0.0 , -v2 , 0.0 , 0.0 , 0.0 ,  m2 , 0.0 ,  v2 , 0.0 , 0.0 , 0.0 ,  m3 ],
+              [ 0.0 , 0.0 ,  v4 , 0.0 ,  m6 , 0.0 , 0.0 , 0.0 , -v4 , 0.0 ,  m5 , 0.0 ],
+              [ 0.0 , -v2 , 0.0 , 0.0 , 0.0 ,  m3 , 0.0 ,  v2 , 0.0 , 0.0 , 0.0 ,  m2 ],
               ]
 
-
-        #Build the full transformation matrix for this element
-        TM = np.zeros((12,12))
-
-        T_repeat =  np.array([local_plane[1],
-                              local_plane[2],
-                              local_plane[3]]
-                              )
-        
-        TM[0:3,0:3] = T_repeat
-        TM[3:6,3:6] = T_repeat
-        TM[6:9,6:9] = T_repeat
-        TM[9:12,9:12] = T_repeat
 
         #Remove released coefficients
         
@@ -107,8 +95,24 @@ class LocalStiffnessMatrix:
 
             count += 1
 
+        #Build the full transformation matrix for this element
+        TM = np.zeros((12,12))
+
+        T_repeat =  np.array([local_plane[1],
+                              local_plane[2],
+                              local_plane[3]]
+                              )
+        
+
+        TM[0:3,0:3] = T_repeat
+        TM[3:6,3:6] = T_repeat
+        TM[6:9,6:9] = T_repeat
+        TM[9:12,9:12] = T_repeat
+
         #Build Global stiffness matrix
         Kg = TM.T.dot(Kl).dot(TM)
+
+        print(Kg)
 
         return Kl, Kg 
 

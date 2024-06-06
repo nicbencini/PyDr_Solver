@@ -42,7 +42,7 @@ class Vector:
 
 class Plane:
 
-    def plane_from_3pt(point_1, point_2, oreintation_vector, xAxisOrientedToLine = False):
+    def plane_from_3pt(point_1, point_2, oreintation_vector, xAxisOrientedToLine = True):
 
         origin = point_1
         x_vector = Vector.unit(point_2 - point_1)

@@ -72,9 +72,10 @@ class VectorTests(unittest.TestCase):
         new_plane_z_vec = new_plane[3]
 
         control_plane_origin = np.array([0.5, 0.5, 1])
-        control_plane_x_vec = np.array([0.5773502691896258, -0.5773502691896258, 0.5773502691896254])
-        control_plane_y_vec = np.array([-0.7071067811865476, -0.7071067811865476, 0])
-        control_plane_z_vec = np.array([0.4082482904638631, -0.4082482904638631, -0.8164965809277261])
+        
+        control_plane_x_vec = np.array([0.4082482904638631, -0.4082482904638631, -0.8164965809277261])
+        control_plane_y_vec = np.array([0.5773502691896258, -0.5773502691896258, 0.5773502691896254])
+        control_plane_z_vec = np.array([-0.7071067811865476, -0.7071067811865476, 0])
 
         self.assertSequenceEqual(new_plane_origin.tolist(),control_plane_origin.tolist())
         self.assertSequenceEqual(new_plane_x_vec.tolist(),control_plane_x_vec.tolist())
@@ -115,9 +116,7 @@ class SolverTests(unittest.TestCase):
 
         length = vector_math.Vector.length(node1.to_array(),node2.to_array())
 
-        print(length)
-
-        local_plane = vector_math.Plane.plane_from_3pt(node1.to_array(),node2.to_array(), orientation_vector)
+        local_plane = vector_math.Plane.plane_from_3pt(node1.to_array(),node2.to_array(), orientation_vector, True)
 
         bar1 = element.Bar(node1,node2,section,orientation_vector)
 
@@ -132,22 +131,35 @@ class SolverTests(unittest.TestCase):
                                                              bar1.release_b
                                                              )
         
-    
 
-        control_KL = [[2.10901906e+09,0,0,0,0,0,-2.10901906e+09,0,0,0,0,0],
-                      [0,3.05210064e+08,0,0,0,-1.86901487e+08,0,-3.05210064e+08,0,0,0 -1.86901487e+08],
-                      [0,0,1.00246074e+08,0,6.13876883e+07,0,0,0,-1.00246074e+08,0,6.13876883e+07,0],
-                      [0,0,0,1.85598653e+07,0,0,0,0,0,-1.85598653e+07,0,0],
-                      [0,0,6.13876883e+07,0,5.01226383e+07,0,0,0,-6.13876883e+07,0,2.50613191e+07,0],
-                      [0,-1.86901487e+08,0,0,0,1.52603818e+08,0,1.86901487e+08,0,0,0,7.63019090e+07],
-                      [-2.10901906e+09,0,0,0,0,0,2.10901906e+09,0,0,0,0,0],
-                      [0,-3.05210064e+08,0,0,0,1.86901487e+08,0,3.05210064e+08,0,0,0,1.86901487e+08],
-                      [0,0,-1.00246074e+08,0,-6.13876883e+07,0,0,0,1.00246074e+08,0,-6.13876883e+07,0],
-                      [0,0,0,-1.85598653e+07,0,0,0,0,0,1.85598653e+07,0,0],
-                      [0,0,6.13876883e+07,0,2.50613191e+07,0,0,0,-6.13876883e+07,0,5.01226383e+07,0],
-                      [0,-1.86901487e+08,0,0,0,7.63019090e+07,0,1.86901487e+08,0,0,0,1.52603818e+08]]
+        control_KL = [[2109010668.5363169,0,0,0,0,0,-2109010668.5363169,0,0,0,0,0],
+                      [0,305206421.9507840,0,0,0,-186900000.0000000,0,-305206421.9507840,0,0,0,-186900000.0000000],
+                      [0,0,100244877.8254530,0,61387200.0000000,0,0,0,-100244877.8254530,0,61387200.0000000,0],
+                      [0,0,0,18559791.4811208,0,0,0,0,0,-18559791.4811208,0,0],
+                      [0,0,61387200.0000000,0,50122438.9127265,0,0,0,-61387200.0000000,0,25061219.4563633,0],
+                      [0,-186900000.0000000,0,0,0,152603210.9753920,0,186900000.0000000,0,0,0,76301605.4876960],
+                      [-2109010668.5363169,0,0,0,0,0,2109010668.5363169,0,0,0,0,0],
+                      [0,-305206421.9507840,0,0,0,186900000.0000000,0,305206421.9507840,0,0,0,186900000.0000000],
+                      [0,0,-100244877.8254530,0,-61387200.0000000,0,0,0,100244877.8254530,0,-61387200.0000000,0],
+                      [0,0,0,-18559791.4811208,0,0,0,0,0,18559791.4811208,0,0],
+                      [0,0,61387200.0000000,0,25061219.4563633,0,0,0,-61387200.0000000,0,50122438.9127265,0],
+                      [0,-186900000.0000000,0,0,0,76301605.4876960,0,186900000.0000000,0,0,0,152603210.9753920]]
         
-        self.assertSequenceEqual(Kl[0],control_KL[0])
+        Kl = np.round(Kl,7)
+
+        self.assertSequenceEqual(Kl[0].tolist(),control_KL[0])
+        self.assertSequenceEqual(Kl[1].tolist(),control_KL[1])
+        self.assertSequenceEqual(Kl[2].tolist(),control_KL[2])
+        self.assertSequenceEqual(Kl[3].tolist(),control_KL[3])
+        self.assertSequenceEqual(Kl[4].tolist(),control_KL[4])
+        self.assertSequenceEqual(Kl[5].tolist(),control_KL[5])
+        self.assertSequenceEqual(Kl[6].tolist(),control_KL[6])
+        self.assertSequenceEqual(Kl[7].tolist(),control_KL[7])
+        self.assertSequenceEqual(Kl[8].tolist(),control_KL[8])
+        self.assertSequenceEqual(Kl[9].tolist(),control_KL[9])
+        self.assertSequenceEqual(Kl[10].tolist(),control_KL[10])
+        self.assertSequenceEqual(Kl[11].tolist(),control_KL[11])
+
 
 
 
