@@ -1,4 +1,4 @@
-from objects import element
+from model import element
 
 class PointLoad:
     """

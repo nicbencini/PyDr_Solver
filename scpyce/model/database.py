@@ -379,6 +379,28 @@ class Model:
 
             return node_index
 
+    def get_material(self, material_name):
+
+        material_cursor = self.connection.cursor()
+        material_data = material_cursor.execute("SELECT * FROM property_material WHERE _id = ?",material_name).fetchone()
+        material_object = property.Material(*material_data)
+        material_cursor.close()
+
+        return material_object
+
+    def get_section(self, section_name):
+
+        section_cursor = self.model.connection.cursor()
+        section_data = section_cursor.execute("SELECT * FROM property_section WHERE _id = ?",section_name).fetchone()
+        section_data[1] = self.get_material(section_data[1])
+        section_object = property.Section(*section_data)
+        section_cursor.close()
+
+        return section_object
+    
+
+
+
     def close_connection(self):
         """
         Closes the connection to the model database. 

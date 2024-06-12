@@ -6,115 +6,10 @@ sys.path.append(parent_dir)
 
 import numpy as np
 import sqlite3
-from objects import element
-from objects import property
+from model import element
+from model import property
 from util import vector_math
 
-class LocalStiffnessMatrix:
-
-    
-    def build(section_area, 
-              youngs_modulus,
-              moment_of_intertia_z,
-              moment_of_intertia_y,
-              shear_modulus,
-              length,
-              local_plane,
-              release_a,
-              release_b):
-        
-        A = section_area
-        E = youngs_modulus * 1000000 #FIX UNITS
-        Iz = moment_of_intertia_z
-        Iy = moment_of_intertia_y
-        G =  shear_modulus * 1000000 #FIX UNITS
-        J =  Iz + Iy
-        L = length
-
-        # Axial coefficient
-        
-        a1 = E*A/L 
-        
-        #Torsional coefficient
-        t1 = G*J/L
-
-        #Shear coeffiecient - Major Axis
-        v1 = 12*E*Iz/L**3
-        v2 = 6*E*Iz/L**2
-
-        #Shear coeffiecient - Minor Axis
-        v3 = 12*E*Iy/L**3
-        v4 = 6*E*Iy/L**2
-        
-        #Moment coeffiecient - Major Axis
-        m1 = 6*E*Iz/L**2
-        m2 = 4*E*Iz/L
-        m3 = 2*E*Iz/L
-
-        #Moment coeffiecient - Minor Axis
-        m4 = 6*E*Iy/L**2
-        m5 = 4*E*Iy/L
-        m6 = 2*E*Iy/L
-
-    
-        #Build local stiffness matrix
-        Kl = [[  a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ],
-              [ 0.0 ,  v1 , 0.0 , 0.0 , 0.0 , -m1 , 0.0 , -v1 , 0.0 , 0.0 , 0.0 , -m1 ],
-              [ 0.0 , 0.0 ,  v3 , 0.0 ,  m4 , 0.0 , 0.0 , 0.0 , -v3 , 0.0 ,  m4 , 0.0 ],
-              [ 0.0 , 0.0 , 0.0 ,  t1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -t1 , 0.0 , 0.0 ],
-              [ 0.0 , 0.0 ,  v4 , 0.0 ,  m5 , 0.0 , 0.0 , 0.0 , -v4 , 0.0 ,  m6 , 0.0 ],
-              [ 0.0 , -v2 , 0.0 , 0.0 , 0.0 ,  m2 , 0.0 ,  v2 , 0.0 , 0.0 , 0.0 ,  m3 ],
-              [ -a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , a1  , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ],
-              [ 0.0 , -v1 , 0.0 , 0.0 , 0.0 ,  m1 , 0.0 ,  v1 , 0.0 , 0.0 , 0.0 ,  m1 ],
-              [ 0.0 , 0.0 , -v3 , 0.0 , -m4 , 0.0 , 0.0 , 0.0 ,  v3 , 0.0 , -m4 , 0.0 ],
-              [ 0.0 , 0.0 , 0.0 , -t1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ,  t1 , 0.0 , 0.0 ],
-              [ 0.0 , 0.0 ,  v4 , 0.0 ,  m6 , 0.0 , 0.0 , 0.0 , -v4 , 0.0 ,  m5 , 0.0 ],
-              [ 0.0 , -v2 , 0.0 , 0.0 , 0.0 ,  m3 , 0.0 ,  v2 , 0.0 , 0.0 , 0.0 ,  m2 ],
-              ]
-
-
-        #Remove released coefficients
-        
-        combined_release_string = release_a + release_b
-
-        count = 0
-
-        for char in combined_release_string:
-
-            if (char == "F"):
-
-                divisor = Kl[count,count]
-
-                row_values = np.divide(Kl[count,:],divisor)
-                col_values = Kl[:,count]
-
-                subtraction_vector = np.outer(col_values,row_values)
-
-                Kl = np.subtract(Kl,subtraction_vector)
-               
-
-            count += 1
-
-        #Build the full transformation matrix for this element
-        TM = np.zeros((12,12))
-
-        T_repeat =  np.array([local_plane[1],
-                              local_plane[2],
-                              local_plane[3]]
-                              )
-        
-
-        TM[0:3,0:3] = T_repeat
-        TM[3:6,3:6] = T_repeat
-        TM[6:9,6:9] = T_repeat
-        TM[9:12,9:12] = T_repeat
-
-        #Build Global stiffness matrix
-        Kg = TM.T.dot(Kl).dot(TM)
-
-        print(Kg)
-
-        return Kl, Kg 
 
 class GlobalStiffnessMatrix:
 
@@ -127,8 +22,12 @@ class GlobalStiffnessMatrix:
         node_cursor.close()
 
         self.model = model
-        self.bar_divisions = 4
-        self.ndof_primary =  len(node_id_list)*self.bar_divisions*6
+        self.ndof_primary =  len(node_id_list)
+        self.nDof_structure = None
+
+        self.bar_Kl_dict={}
+        self.flag_list=[]
+        self.removed_indices_list = []
 
 
         if((self.ndof_primary ** 2)*8 > 1e+9):
@@ -136,14 +35,10 @@ class GlobalStiffnessMatrix:
         else:
             self.primarty_stiffness_matrix = np.zeros((self.ndof_primary,self.ndof_primary),dtype=np.int8)
 
-    def build_primary(self):
+    def primary_stiffness_matrix(self):
 
         bar_cursor = self.model.connection.cursor()
         bar_cursor.execute('SELECT * FROM element_bar') 
-
-        count = 0
-
-        node_index_counter = (self.ndof_primary/6) - 1
 
         for bar in bar_cursor:
 
@@ -153,23 +48,17 @@ class GlobalStiffnessMatrix:
 
             section_name = (str(bar[4]),)
 
-            section_cursor = self.model.connection.cursor()
-            section = section_cursor.execute("SELECT * FROM property_section WHERE _id = ?",section_name).fetchone()
-            section_cursor.close()
+            ##WORKING HERE###
+            bar[3] = section_object
+            bar_object = element.Bar(*bar)
 
-            material_name = (str(section[1]),)
 
-            material_cursor = self.model.connection.cursor()
-            material = material_cursor.execute("SELECT * FROM property_material WHERE _id = ?",material_name).fetchone()
-            material_cursor.close()
-          
-            #self.bar_Kl_dict[bar_id] = []
+            Kl = bar_object.local_stiffness_matrix()
+            TM = bar_object.transformation_matrix()
+            Kg = TM.T.dot(Kl).dot(TM)
 
-            bar_stiffness_matrix = LocalStiffnessMatrix(bar, section,  material)
 
-            Kl = bar_stiffness_matrix.Kl
-            Kg = bar_stiffness_matrix.Kg
-
+            self.bar_Kl_dict[bar_id] = []
             self.bar_Kl_dict[bar_id].append(Kl)
 
             # build list of bar local stifness matrices to use in calculation of results
@@ -216,21 +105,11 @@ class GlobalStiffnessMatrix:
                     
                         self.primarty_stiffness_matrix[row_index_22,col_index_22] = self.primarty_stiffness_matrix[row_index_22,col_index_22] + K22_data
 
-class StructuralStiffnessMatrix:
-
-
-    nDof_structure = None
-    structural_stiffness_matrix = None
-    bar_Kl_dict={}
-
-    flag_list=[]
 
 
 
-    removed_indices_list = []
 
-
-    def build_structural(self):
+    def structural_stiffness_matrix(self):
 
 
         support_cursor = StiffnessMatrix.data_connection.cursor()

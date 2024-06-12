@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-class Vector:
+class Vector_3d:
 
     @staticmethod
 
@@ -11,9 +11,9 @@ class Vector:
 
 
     def unit(vector):
-       unit_vec = np.array([vector[0] / Vector.magnitude(vector), 
-                            vector[1] / Vector.magnitude(vector), 
-                            vector[2] / Vector.magnitude(vector)])
+       unit_vec = np.array([vector[0] / Vector_3d.magnitude(vector), 
+                            vector[1] / Vector_3d.magnitude(vector), 
+                            vector[2] / Vector_3d.magnitude(vector)])
        
        return unit_vec
     
@@ -45,22 +45,22 @@ class Plane:
     def plane_from_3pt(point_1, point_2, oreintation_vector, xAxisOrientedToLine = True):
 
         origin = point_1
-        x_vector = Vector.unit(point_2 - point_1)
+        x_vector = Vector_3d.unit(point_2 - point_1)
 
-        if (Vector.is_parallel(x_vector , oreintation_vector)):
+        if (Vector_3d.is_parallel(x_vector , oreintation_vector)):
         
-            if (not Vector.is_parallel(x_vector , Vector.unit_z)):
+            if (not Vector_3d.is_parallel(x_vector , Vector_3d.unit_z)):
 
-                oreintation_vector = Vector.unit_z
+                oreintation_vector = Vector_3d.unit_z
 
             else:
 
-                oreintation_vector = -Vector.unit_x
+                oreintation_vector = -Vector_3d.unit_x
 
 
-        y_vector = Vector.unit(Vector.gram_schmit(x_vector, oreintation_vector))
+        y_vector = Vector_3d.unit(Vector_3d.gram_schmit(x_vector, oreintation_vector))
 
-        z_vector = Vector.unit(np.cross(x_vector, y_vector))
+        z_vector = Vector_3d.unit(np.cross(x_vector, y_vector))
 
 
         if (not xAxisOrientedToLine):
