@@ -1,4 +1,5 @@
-from model import element
+from objects import element
+
 
 class PointLoad:
     """

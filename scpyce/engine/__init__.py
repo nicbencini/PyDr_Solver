@@ -1,3 +1,2 @@
-from . import solver
-from . import stiffness_matrix
-from . import vector
+from . import lind_solver
+from . import database

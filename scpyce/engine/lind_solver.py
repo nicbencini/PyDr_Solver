@@ -6,36 +6,47 @@ sys.path.append(parent_dir)
 
 import numpy as np
 import sqlite3
-from model import element
-from model import property
-from util import vector_math
+from objects import element
+from objects import property
+from geometry import sc_vector
 
 
-class GlobalStiffnessMatrix:
+def solve(structural_stiffness_matrix, force_vector):
+    
+    displacement_vector = np.linalg.solve(structural_stiffness_matrix, force_vector)
+
+    return displacement_vector
+
+
+class StiffnessMatrix:
 
     """description of class"""
 
     def __init__(self, model):
 
+        self.model = model
+        self.bar_Kl_dict={}
+        self.removed_indices_list = []
+
+        # Initiate primary stiffness matrix
+
         node_cursor = model.connection.cursor()
         node_id_list = node_cursor.execute('SELECT _id FROM element_node').fetchall()
         node_cursor.close()
 
-        self.model = model
-        self.ndof_primary =  len(node_id_list)
-        self.nDof_structure = None
-
-        self.bar_Kl_dict={}
-        self.flag_list=[]
-        self.removed_indices_list = []
-
-
+        self.ndof_primary =  len(node_id_list) * 6
         if((self.ndof_primary ** 2)*8 > 1e+9):
             raise RuntimeError('Stiffness matrix size exceeds 1GB. Reduce the number of elements in the model')
         else:
             self.primarty_stiffness_matrix = np.zeros((self.ndof_primary,self.ndof_primary),dtype=np.int8)
 
-    def primary_stiffness_matrix(self):
+        # Initiate structural stiffness matrix
+        self.ndof_structure = None
+        self.structual_stiffness_matrix = None
+
+        self.force_vector = None
+
+    def build_primary(self):
 
         bar_cursor = self.model.connection.cursor()
         bar_cursor.execute('SELECT * FROM element_bar') 
@@ -46,12 +57,7 @@ class GlobalStiffnessMatrix:
             node_i_index  = bar[1]
             node_j_index  = bar[2]
 
-            section_name = (str(bar[4]),)
-
-            ##WORKING HERE###
-            bar[3] = section_object
-            bar_object = element.Bar(*bar)
-
+            bar_object = self.model.get_bar(bar_id)
 
             Kl = bar_object.local_stiffness_matrix()
             TM = bar_object.transformation_matrix()
@@ -104,76 +110,59 @@ class GlobalStiffnessMatrix:
                         col_index_22 = int(j + 6*node_j_index)
                     
                         self.primarty_stiffness_matrix[row_index_22,col_index_22] = self.primarty_stiffness_matrix[row_index_22,col_index_22] + K22_data
+        
+        return self.primarty_stiffness_matrix
 
+    def build_structural(self):
 
-
-
-
-    def structural_stiffness_matrix(self):
-
-
-        support_cursor = StiffnessMatrix.data_connection.cursor()
+        support_cursor = self.model.connection.cursor()
         support_cursor.execute('SELECT * FROM element_support ORDER BY node_index ASC') 
         support_list = support_cursor.fetchall()
 
-        structural_matrix_data = []
-        structural_matrix_row = []
-        structural_matrix_col = []
-
-
-        StiffnessMatrix.nDof_structure = StiffnessMatrix.nDof_primary
 
         #cycle through supports and build flag list
         for support in support_list:
 
-            if( support[1] == 1) : StiffnessMatrix.removed_indices_list.append(int(support[0])*6+0)
-            if( support[2] == 1) : StiffnessMatrix.removed_indices_list.append(int(support[0])*6+1)
-            if( support[3] == 1) : StiffnessMatrix.removed_indices_list.append(int(support[0])*6+2)
-            if( support[4] == 1) : StiffnessMatrix.removed_indices_list.append(int(support[0])*6+3)
-            if( support[5] == 1) : StiffnessMatrix.removed_indices_list.append(int(support[0])*6+4)
-            if( support[6] == 1) : StiffnessMatrix.removed_indices_list.append(int(support[0])*6+5)
+            if( support[1] == 1) : self.removed_indices_list.append(int(support[0])*6+0)
+            if( support[2] == 1) : self.removed_indices_list.append(int(support[0])*6+1)
+            if( support[3] == 1) : self.removed_indices_list.append(int(support[0])*6+2)
+            if( support[4] == 1) : self.removed_indices_list.append(int(support[0])*6+3)
+            if( support[5] == 1) : self.removed_indices_list.append(int(support[0])*6+4)
+            if( support[6] == 1) : self.removed_indices_list.append(int(support[0])*6+5)
 
         support_cursor.close()
 
-        zero_row_check = np.diff(StiffnessMatrix.primary_stiffness_matrix.indptr) != 0
+        self.ndof_structure = self.ndof_primary - len(self.removed_indices_list)
+
+        self.structual_stiffness_matrix = np.delete(self.primarty_stiffness_matrix, self.removed_indices_list,0)
+        self.structual_stiffness_matrix = np.delete(self.structual_stiffness_matrix, self.removed_indices_list,1)
+
+        return self.structual_stiffness_matrix
+
+    def build_force_vector(self):
+
+        self.force_vector = np.zeros((self.ndof_primary),dtype=np.int8)
+
+        pointload_cursor = self.model.connection.cursor()
+        pointload_cursor.execute('SELECT * FROM load_pointload') 
+
+        for ptLoad in pointload_cursor:
+
+            NodeIndex = ptLoad[0]
+
+            if ptLoad[1] != 0: self.force_vector[NodeIndex*6] = ptLoad[1]*1000
+            if ptLoad[2] != 0: self.force_vector[NodeIndex*6 + 1] = ptLoad[2]*1000
+            if ptLoad[3] != 0: self.force_vector[NodeIndex*6 + 2] = ptLoad[3]*1000
+            if ptLoad[4] != 0: self.force_vector[NodeIndex*6 + 3] = ptLoad[4]*1000
+            if ptLoad[5] != 0: self.force_vector[NodeIndex*6 + 4] = ptLoad[5]*1000
+            if ptLoad[6] != 0: self.force_vector[NodeIndex*6 + 5] = ptLoad[6]*1000
+
+        pointload_cursor.close()
+
+        self.force_vector = np.delete(self.force_vector, self.removed_indices_list, 0)
+
+        return self.force_vector
+
+
         
-
-        index_count = 0
-
-        for i in range(len(zero_row_check)):
-            
-            if (i in StiffnessMatrix.removed_indices_list):
-                StiffnessMatrix.flag_list.append(-1)
-                StiffnessMatrix.nDof_structure -= 1
-            
-            elif (not zero_row_check[i]):
-                StiffnessMatrix.removed_indices_list.append(i)
-
-                StiffnessMatrix.flag_list.append(-1)
-                StiffnessMatrix.nDof_structure -= 1
-
-            else:
-                StiffnessMatrix.flag_list.append(index_count)
-                index_count += 1
-
-
-
-
-        for i in range (len(StiffnessMatrix.primary_matrix_data)):
-
-            data = StiffnessMatrix.primary_matrix_data[i]
-            row_index = StiffnessMatrix.primary_matrix_row[i]
-            col_index = StiffnessMatrix.primary_matrix_col[i]
-
-            if (StiffnessMatrix.flag_list[row_index] != -1) and (StiffnessMatrix.flag_list[col_index] != -1):
-
-                structural_matrix_data.append(data)
-                structural_matrix_row.append(StiffnessMatrix.flag_list[row_index])
-                structural_matrix_col.append(StiffnessMatrix.flag_list[col_index])
-
-
-
-        StiffnessMatrix.structural_stiffness_matrix = csc_matrix((structural_matrix_data, (structural_matrix_row, structural_matrix_col)), shape = (StiffnessMatrix.nDof_structure , StiffnessMatrix.nDof_structure ))
-
-
 

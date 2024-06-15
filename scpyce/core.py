@@ -1,8 +1,8 @@
 import time
 import numpy as np
 
-from model import element
-from model import property
+from objects import element
+from objects import property
 
 #Sign convention
 

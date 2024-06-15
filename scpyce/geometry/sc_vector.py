@@ -23,8 +23,8 @@ class Vector_3d:
         return vector_2 - (np.dot(np.dot(vector_2,vector_1),vector_1))
 
     def is_parallel(vector_1, vector_2):
-       
-       return np.dot(vector_1,vector_2) == 0
+
+        return np.dot(vector_1,vector_2) == 0
     
     def length(point_1, point_2):
 
