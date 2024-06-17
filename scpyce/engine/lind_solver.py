@@ -9,13 +9,19 @@ import sqlite3
 from objects import element
 from objects import property
 from geometry import sc_vector
+from engine import result
 
 
-def solve(structural_stiffness_matrix, force_vector):
-    
-    displacement_vector = np.linalg.solve(structural_stiffness_matrix, force_vector)
+def solve(model):
 
-    return displacement_vector
+    stiffness_matrix = StiffnessMatrix(model)
+
+    stiffness_matrix.build_primary()
+    stiffness_matrix.build_structural()
+    stiffness_matrix.build_force_vector()
+    stiffness_matrix.solve()
+    stiffness_matrix.build_node_dispalcements()
+    stiffness_matrix.build_node_reactions()
 
 
 class StiffnessMatrix:
@@ -27,14 +33,15 @@ class StiffnessMatrix:
         self.model = model
         self.bar_Kl_dict={}
         self.removed_indices_list = []
+        self.flag_list = []
 
         # Initiate primary stiffness matrix
 
         node_cursor = model.connection.cursor()
-        node_id_list = node_cursor.execute('SELECT _id FROM element_node').fetchall()
+        self.node_id_list = node_cursor.execute('SELECT _id FROM element_node').fetchall()
         node_cursor.close()
 
-        self.ndof_primary =  len(node_id_list) * 6
+        self.ndof_primary =  len(self.node_id_list) * 6
         if((self.ndof_primary ** 2)*8 > 1e+9):
             raise RuntimeError('Stiffness matrix size exceeds 1GB. Reduce the number of elements in the model')
         else:
@@ -45,6 +52,27 @@ class StiffnessMatrix:
         self.structual_stiffness_matrix = None
 
         self.force_vector = None
+        self.displacement_vector = []
+        self.reaction_vector = None
+
+    def solve(self):
+        
+        reduced_displacement_vector = np.linalg.solve(self.structual_stiffness_matrix, self.force_vector)
+
+        count = 0
+
+        for flag in self.flag_list:
+
+            if(flag == 0):
+                self.displacement_vector.append(reduced_displacement_vector[count])
+
+                count += 1
+            else:
+                self.displacement_vector.append(0)
+
+        self.reaction_vector = np.dot(self.primarty_stiffness_matrix,
+                                      np.array(self.displacement_vector).T)
+
 
     def build_primary(self):
 
@@ -120,6 +148,8 @@ class StiffnessMatrix:
         support_list = support_cursor.fetchall()
 
 
+
+
         #cycle through supports and build flag list
         for support in support_list:
 
@@ -132,8 +162,10 @@ class StiffnessMatrix:
 
         support_cursor.close()
 
-        self.ndof_structure = self.ndof_primary - len(self.removed_indices_list)
+        self.flag_list = np.zeros(self.ndof_primary)
+        self.flag_list[self.removed_indices_list] = -1
 
+        self.ndof_structure = self.ndof_primary - len(self.removed_indices_list)
         self.structual_stiffness_matrix = np.delete(self.primarty_stiffness_matrix, self.removed_indices_list,0)
         self.structual_stiffness_matrix = np.delete(self.structual_stiffness_matrix, self.removed_indices_list,1)
 
@@ -163,6 +195,61 @@ class StiffnessMatrix:
 
         return self.force_vector
 
+    def build_node_dispalcements(self):
 
-        
+        results_cursor = self.model.connection.cursor()
+
+        #results_cursor.execute("DELETE FROM result_node_displacement")
+
+        for i in range(len(self.node_id_list)):
+
+            id = self.node_id_list[i][0]
+            ux = self.displacement_vector[i*6]
+            uy = self.displacement_vector[i*6 + 1]
+            uz = self.displacement_vector[i*6 + 2]
+            rx = self.displacement_vector[i*6 + 3]
+            ry = self.displacement_vector[i*6 + 4]
+            rz = self.displacement_vector[i*6 + 5]
+
+            results_node_displacement_string = (id,"",ux,uy,uz,rx,ry,rz)
+
+            results_node_displacement_query = """INSERT INTO result_node_displacement
+                                    (node_index, load_case, ux, uy, uz, rx, ry, rz) 
+                                    VALUES 
+                                    (?,?,?,?,?,?,?,?)"""
+
+            results_cursor.execute(results_node_displacement_query,results_node_displacement_string)    
+
+        results_cursor.close()
+
+    def build_node_reactions(self):
+
+
+        support_cursor = self.model.connection.cursor()
+        support_id_list = support_cursor.execute('SELECT node_index FROM element_support').fetchall()
+        support_cursor.close()
+
+        results_cursor = self.model.connection.cursor()
+        #results_cursor.execute("DELETE FROM result_node_reactions")
+
+        for i in range(len(support_id_list)):
+
+            id = support_id_list[i][0]
+            fx = self.reaction_vector[i*6]
+            fy = self.reaction_vector[i*6 + 1]
+            fz = self.reaction_vector[i*6 + 2]
+            mx = self.reaction_vector[i*6 + 3]
+            my = self.reaction_vector[i*6 + 4]
+            mz = self.reaction_vector[i*6 + 5]
+
+            results_node_reaction_string = (id,"",fx,fy,fz,mx,my,mz)
+
+            results_node_reaction_query = """INSERT INTO result_node_reactions
+                                    (node_index, load_case, fx, fy, fz, mx, my, mz) 
+                                    VALUES 
+                                    (?,?,?,?,?,?,?,?)"""
+
+            results_cursor.execute(results_node_reaction_query,results_node_reaction_string)    
+
+        results_cursor.close()
 

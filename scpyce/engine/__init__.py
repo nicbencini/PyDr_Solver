@@ -1,2 +1,3 @@
 from . import lind_solver
-from . import database
+from . import model
+from . import result

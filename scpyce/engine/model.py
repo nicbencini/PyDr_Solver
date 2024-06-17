@@ -3,6 +3,7 @@ import numpy as np
 import warnings
 from objects import property
 from objects import element
+from engine import lind_solver
 
 class Model:
     def __init__(self , file_path):
@@ -89,6 +90,30 @@ class Model:
         );
         """
 
+        results_node_displacements = """ 
+        CREATE TABLE IF NOT EXISTS result_node_displacement (
+        node_index int NOT NULL,
+        load_case string NOT NULL,
+        ux float NOT NULL,
+        uy float NOT NULL,
+        uz float NOT NULL,
+        rx float NOT NULL,
+        ry float NOT NULL,
+        rz float NOT NULL
+        ); """
+
+        results_node_reactions = """ CREATE TABLE IF NOT EXISTS 
+        result_node_reactions (
+        node_index int NOT NULL,
+        load_case string NOT NULL,
+        fx float NOT NULL,
+        fy float NOT NULL,
+        fz float NOT NULL,
+        mx float NOT NULL,
+        my float NOT NULL,
+        mz float NOT NULL
+        ); """
+
         cur.execute(bar_table_schema)
         cur.execute(node_table_schema)
         cur.execute(support_table_schema)
@@ -96,6 +121,8 @@ class Model:
         cur.execute(material_table_schema)
         cur.execute(material_table_schema)
         cur.execute(section_table_schema)
+        cur.execute(results_node_displacements)
+        cur.execute(results_node_reactions)
 
         cur.close()
 
@@ -410,8 +437,7 @@ class Model:
         node_cursor.close()
 
         return node_object
-        
-
+   
     def get_bar(self, bar_name):
         bar_cursor = self.connection.cursor()
         bar_data = bar_cursor.execute("SELECT * FROM element_bar WHERE _id = ?",[bar_name]).fetchone()
@@ -449,8 +475,8 @@ class Model:
         return bar_object
 
 
+    
 
- 
     def close_connection(self):
         """
         Closes the connection to the model database. 

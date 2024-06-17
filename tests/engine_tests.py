@@ -7,7 +7,7 @@ import unittest
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir + '/scpyce')
 
-from engine import database
+from engine import model
 from engine import lind_solver
 from objects import element
 from objects import property
@@ -44,7 +44,7 @@ class DatabaseTests(unittest.TestCase):
 
         load1 = load.PointLoad(node1,0,0,10,0,0,0)
 
-        structural_model = database.Model(db_path + 'db_1.db')
+        structural_model = model.Model(db_path + 'db_1.db')
         structural_model.build_tables()
 
         structural_model.add_bar(bar1)
@@ -63,7 +63,7 @@ class DatabaseTests(unittest.TestCase):
 
 
     def test_get_material(self):
-        structural_model = database.Model(db_path + 'db_1.db')
+        structural_model = model.Model(db_path + 'db_1.db')
 
         material = structural_model.get_material('steel')
 
@@ -81,7 +81,7 @@ class DatabaseTests(unittest.TestCase):
         self.assertEqual(material.embodied_carbon, 12090.0)
 
     def test_get_section(self):
-        structural_model = database.Model(db_path + 'db_1.db')
+        structural_model = model.Model(db_path + 'db_1.db')
 
         section = structural_model.get_section('UC305x305x97')
 
@@ -94,7 +94,7 @@ class DatabaseTests(unittest.TestCase):
         structural_model.close_connection()
 
     def test_get_node(self):
-        structural_model = database.Model(db_path + 'db_1.db')
+        structural_model = model.Model(db_path + 'db_1.db')
 
         node = structural_model.get_node(3)
 
@@ -105,7 +105,7 @@ class DatabaseTests(unittest.TestCase):
         structural_model.close_connection()
 
     def test_get_bar(self):
-        structural_model = database.Model(db_path + 'db_1.db')
+        structural_model = model.Model(db_path + 'db_1.db')
 
         bar = structural_model.get_bar('118b8dcc-8214-42f7-ac5e-bff8cd75fd40')
 
@@ -116,19 +116,11 @@ class SolverTests(unittest.TestCase):
 
     def test_build_global_stiffness_matrix(self):
         
-        structural_model = database.Model(db_path + 'db_1.db')
+        structural_model = model.Model(db_path + 'db_1.db')
 
-        stiffness_matrix = lind_solver.StiffnessMatrix(structural_model)
+        D = lind_solver.solve(structural_model)
 
-        Kg = stiffness_matrix.build_primary()
-        Ks = stiffness_matrix.build_structural()
-        Fv = stiffness_matrix.build_force_vector()
-
-        
-
-        D = lind_solver.solve(Ks, Fv)
-
-        print (D)
+        #print (D)
 
         structural_model.close_connection()  
 
