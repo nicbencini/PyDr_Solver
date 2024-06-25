@@ -107,6 +107,7 @@ class DatabaseTests(unittest.TestCase):
     def test_get_bar(self):
         structural_model = model.Model(db_path + 'db_1.db')
 
+
         bar = structural_model.get_bar('118b8dcc-8214-42f7-ac5e-bff8cd75fd40')
 
         structural_model.close_connection()   

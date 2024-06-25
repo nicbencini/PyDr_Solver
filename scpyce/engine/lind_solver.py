@@ -1,5 +1,6 @@
 import os
 import sys
+import math
 
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir)
@@ -68,7 +69,7 @@ class StiffnessMatrix:
 
                 count += 1
             else:
-                self.displacement_vector.append(0)
+                self.displacement_vector.append(0.0)
 
         self.reaction_vector = np.dot(self.primarty_stiffness_matrix,
                                       np.array(self.displacement_vector).T)
@@ -199,7 +200,7 @@ class StiffnessMatrix:
 
         results_cursor = self.model.connection.cursor()
 
-        #results_cursor.execute("DELETE FROM result_node_displacement")
+        results_cursor.execute("DELETE FROM result_node_displacement")
 
         for i in range(len(self.node_id_list)):
 
@@ -220,6 +221,8 @@ class StiffnessMatrix:
 
             results_cursor.execute(results_node_displacement_query,results_node_displacement_string)    
 
+
+        self.model.connection.commit()
         results_cursor.close()
 
     def build_node_reactions(self):
@@ -230,17 +233,18 @@ class StiffnessMatrix:
         support_cursor.close()
 
         results_cursor = self.model.connection.cursor()
-        #results_cursor.execute("DELETE FROM result_node_reactions")
+        results_cursor.execute("DELETE FROM result_node_reactions")
 
         for i in range(len(support_id_list)):
 
             id = support_id_list[i][0]
-            fx = self.reaction_vector[i*6]
-            fy = self.reaction_vector[i*6 + 1]
-            fz = self.reaction_vector[i*6 + 2]
-            mx = self.reaction_vector[i*6 + 3]
-            my = self.reaction_vector[i*6 + 4]
-            mz = self.reaction_vector[i*6 + 5]
+            fx = self.reaction_vector[id*6 + 0] 
+            fy = self.reaction_vector[id*6 + 1] 
+            fz = self.reaction_vector[id*6 + 2] 
+            mx = self.reaction_vector[id*6 + 3] 
+            my = self.reaction_vector[id*6 + 4] 
+            mz = self.reaction_vector[id*6 + 5] 
+
 
             results_node_reaction_string = (id,"",fx,fy,fz,mx,my,mz)
 
@@ -251,5 +255,6 @@ class StiffnessMatrix:
 
             results_cursor.execute(results_node_reaction_query,results_node_reaction_string)    
 
+        self.model.connection.commit()
         results_cursor.close()
 
