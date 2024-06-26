@@ -227,7 +227,6 @@ class StiffnessMatrix:
 
     def build_node_reactions(self):
 
-
         support_cursor = self.model.connection.cursor()
         support_id_list = support_cursor.execute('SELECT node_index FROM element_support').fetchall()
         support_cursor.close()
@@ -244,7 +243,6 @@ class StiffnessMatrix:
             mx = self.reaction_vector[id*6 + 3] 
             my = self.reaction_vector[id*6 + 4] 
             mz = self.reaction_vector[id*6 + 5] 
-
 
             results_node_reaction_string = (id,"",fx,fy,fz,mx,my,mz)
 
