@@ -15,7 +15,7 @@ from objects import load
 from geometry import vector_3d
 
 
-db_path = os.path.dirname(os.path.realpath(__file__)) +'/test_files/'+ 'db_1.db'
+db_path = os.path.dirname(os.path.realpath(__file__)) +'/test_files/'+ 'database_1_model_test.db'
 
 class DatabaseTests(unittest.TestCase):
 
@@ -108,7 +108,7 @@ class DatabaseTests(unittest.TestCase):
         structural_model = database.Model(db_path)
 
 
-        bar = structural_model.get_bar('118b8dcc-8214-42f7-ac5e-bff8cd75fd40')
+        bar = structural_model.get_bar('5b324ddf-4c1e-42a1-b02a-4d9309498fb3')
 
         structural_model.close_connection()   
  
