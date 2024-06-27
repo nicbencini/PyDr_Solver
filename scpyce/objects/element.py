@@ -1,7 +1,8 @@
 import numpy as np
 import uuid
 from objects import property
-from geometry import sc_vector
+from geometry import vector_3d
+from geometry import plane
 
 class Node:
     """
@@ -47,7 +48,7 @@ class Bar:
         self.release_a = release_a
         self.release_b = release_b
         self.id = id if id is not None else str(uuid.uuid4())
-        self.length = sc_vector.Vector_3d.length(node_a.to_array(),node_b.to_array())
+        self.length = vector_3d.length(node_a.to_array(),node_b.to_array())
 
 
     def local_stiffness_matrix(self):
@@ -131,7 +132,7 @@ class Bar:
         #Build the full transformation matrix for this element
         TM = np.zeros((12,12))
 
-        local_plane = sc_vector.Plane.plane_from_3pt(self.node_a.to_array(),
+        local_plane = plane.plane_from_3pt(self.node_a.to_array(),
                                                        self.node_b.to_array(), 
                                                        self.orientation_vector, 
                                                        True

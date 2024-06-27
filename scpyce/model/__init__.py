@@ -1,4 +1,4 @@
 from . import database
 from . import tables
-from . import get
-from . import set
+from . import read
+from . import write

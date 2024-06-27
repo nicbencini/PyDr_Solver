@@ -9,8 +9,7 @@ import numpy as np
 import sqlite3
 from objects import element
 from objects import property
-from geometry import sc_vector
-from engine import result
+from geometry import vector_3d
 
 
 def solve(model):

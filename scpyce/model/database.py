@@ -4,8 +4,8 @@ import warnings
 from objects import property
 from objects import element
 from model import tables
-from model import set
-from model import get
+from model import write
+from model import read
 
 class Model:
     def __init__(self , file_path):
@@ -40,7 +40,7 @@ class Model:
         Adds a bar to the database. Returns the id of that bar. 
         If the bar already exists it will return the id of the existing bar.
         """
-        set.add_bar(self, bar)
+        write.add_bar(self, bar)
         
     def add_node(self, node):
         """
@@ -48,7 +48,7 @@ class Model:
         If the node already exists it will return the id of the existing node.
         """
 
-        set.add_node(self, node)
+        write.add_node(self, node)
 
     
     def add_material(self, material):
@@ -57,7 +57,7 @@ class Model:
         If the node already exists it will return the node_index of the existing node.
         """
 
-        set.add_material(self, material)
+        write.add_material(self, material)
 
     def add_section(self, section):
         """
@@ -65,7 +65,7 @@ class Model:
         If the node already exists it will return the node_index of the existing node.
         """
 
-        set.add_section(self,section)
+        write.add_section(self,section)
 
     def add_support(self, support):
             """
@@ -73,7 +73,7 @@ class Model:
             If the node already exists it will return the id of the existing node.
             """
 
-            set.add_support(self, support)
+            write.add_support(self, support)
 
     def add_point_load(self, pointload):
             """
@@ -81,30 +81,30 @@ class Model:
             If the node already exists it will return the id of the existing node.
             """
 
-            set.add_point_load(self, pointload)
+            write.add_point_load(self, pointload)
 
     def get_material(self, material_name):
 
         
-        material_object = get.get_material(self, material_name)
+        material_object = read.get_material(self, material_name)
 
         return material_object
 
     def get_section(self, section_name):
 
-        section_object = get.get_section(self, section_name)
+        section_object = read.get_section(self, section_name)
 
         return section_object
     
     def get_node(self, node_index):
         
-        node_object = get.get_node(self, node_index)
+        node_object = read.get_node(self, node_index)
 
         return node_object
    
     def get_bar(self, bar_name):
         
-        bar_object = get.get_bar(self, bar_name)
+        bar_object = read.get_bar(self, bar_name)
         
         return bar_object
     

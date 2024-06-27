@@ -7,7 +7,8 @@ import unittest
 parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(parent_dir + '/scpyce')
 
-from geometry import sc_vector
+from geometry import vector_3d
+from geometry import plane
 
 
 class VectorTests(unittest.TestCase):
@@ -16,7 +17,7 @@ class VectorTests(unittest.TestCase):
 
         vector = (11,23,2)
 
-        magnitude = sc_vector.Vector_3d.magnitude(vector)
+        magnitude = vector_3d.magnitude(vector)
 
         self.assertEqual(magnitude,25.573423705088842)
 
@@ -24,7 +25,7 @@ class VectorTests(unittest.TestCase):
 
         vector = (11,23,2)
 
-        unit_vector = sc_vector.Vector_3d.unit(vector)
+        unit_vector = vector_3d.unit(vector)
         control_vector = np.array([0.4301340378531763,0.8993711700566414,0.07820618870057751])
 
         self.assertSequenceEqual(unit_vector.tolist(),control_vector.tolist())
@@ -34,7 +35,7 @@ class VectorTests(unittest.TestCase):
         vector_1 = (0,0,0)
         vector_2 = (11,23,2)
 
-        length = sc_vector.Vector_3d.length(vector_1, vector_2)
+        length = vector_3d.length(vector_1, vector_2)
         control_length = 25.573423705088842
 
         self.assertEqual(length, control_length)
@@ -44,7 +45,7 @@ class VectorTests(unittest.TestCase):
         vector_1 = (11,23,2)
         vector_2 = (2,5,6)
 
-        new_vector = sc_vector.Vector_3d.gram_schmit(vector_1 , vector_2)
+        new_vector = vector_3d.gram_schmit(vector_1 , vector_2)
         control_vector = np.array([-1637,-3422,-292])
 
         self.assertSequenceEqual(new_vector.tolist(),control_vector.tolist())
@@ -56,7 +57,7 @@ class VectorTests(unittest.TestCase):
         point_2 = np.array([1,0,0])
         vector = np.array([0,0,1])
 
-        new_plane = sc_vector.Plane.plane_from_3pt(point_1, point_2, vector)
+        new_plane = plane.plane_from_3pt(point_1, point_2, vector)
 
         new_plane_origin = new_plane[0]
         new_plane_x_vec = new_plane[1]
