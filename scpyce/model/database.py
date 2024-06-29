@@ -1,7 +1,7 @@
 import sqlite3
 import numpy as np
 import warnings
-from objects import property
+from objects import properties
 from objects import element
 from model import tables
 from model import write

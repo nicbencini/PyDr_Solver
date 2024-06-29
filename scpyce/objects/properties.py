@@ -1,6 +1,14 @@
+"""
+This module contains the functions for the geometrical manipulation of vectors.
+"""
 import numpy as np
 
 class Material:
+    """
+    This module contains the functions for the geometrical manipulation of vectors.
+    """
+    # pylint: disable=too-many-instance-attributes
+    # Eleven is reasonable in this case.
 
     def __init__ (self,
                   name : str,
@@ -10,10 +18,13 @@ class Material:
                   coeff_thermal_expansion : float, # 1/c
                   damping_ratio : float,
                   density : float, # kN/m^3
-                  type : str = None,
+                  type : str = None, # pylint: disable=redefined-builtin
                   region: str = None,
                   embodied_carbon : float = None #kgCO2e/m^3
                   ):
+
+        # pylint: disable=too-many-arguments
+        # Eleven is reasonable in this case.
 
         self.name = name
         self.youngs_modulus = youngs_modulus
@@ -29,6 +40,7 @@ class Material:
     @staticmethod
 
     def default():
+        """This module contains the functions for the geometrical manipulation of vectors."""
 
         default_material = Material('steel',
                                     210000, # MPa
@@ -44,7 +56,33 @@ class Material:
 
         return default_material
 
+    def to_string(self):
+        """Returns a string with the object variables."""
+
+        return f'Material: name = {self.name}'
+
+    def to_array(self):
+        """Returns an array with the object variables."""
+
+        return np.array([self.name,
+                         self.youngs_modulus,
+                         self.poissons_ratio,
+                         self.shear_modulus,
+                         self.coeff_thermal_expansion,
+                         self.damping_ratio,
+                         self.density,
+                         self.type,
+                         self.region,
+                         self.embodied_carbon
+                        ]
+                        )
+
 class Section:
+    """
+    This module contains the functions for the geometrical manipulation of vectors.
+    """
+    # pylint: disable=too-many-arguments
+    # Six is reasonable in this case.
 
     def __init__ (self,
                   name : str,
@@ -63,6 +101,7 @@ class Section:
     @staticmethod
 
     def default():
+        """This module contains the functions for the geometrical manipulation of vectors."""
 
         default_section = Section('UC305x305x97',
                                   Material.default(),
@@ -73,7 +112,25 @@ class Section:
 
         return default_section
 
+    def to_string(self):
+        """Returns a string with the object variables."""
+
+        return f'Section: name = {self.name}'
+
+    def to_array(self):
+        """Returns an array with the object variables."""
+
+        return np.array([self.name,
+                         self.material.name,
+                         self.area,
+                         self.izz,
+                         self.iyy]
+                         )
+
 class LocalPlane:
+    """
+    This module contains the functions for the geometrical manipulation of vectors.
+    """
 
     def __init__(self,
                  origin : np.array,
@@ -81,13 +138,22 @@ class LocalPlane:
                  y_vector : np.array,
                  z_vector : np.array
                  ):
-        
+
         self.origin = origin
         self.x_vector = x_vector
         self.y_vector = y_vector
         self.z_vector = z_vector
 
+    def to_string(self):
+        """Returns a string with the object variables."""
 
+        return f'Local Plane at {self.origin}'
 
+    def to_array(self):
+        """Returns an array with the object variables."""
 
-
+        return np.array([self.origin,
+                         self.x_vector,
+                         self.y_vector,
+                         self.z_vector]
+                         )

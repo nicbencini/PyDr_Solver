@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from objects import element
-from objects import property
+from scpyce.objects import properties
 
 #Sign convention
 

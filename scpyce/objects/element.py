@@ -1,8 +1,12 @@
-import numpy as np
+"""
+This module contains the functions for the geometrical manipulation of vectors.
+"""
 import uuid
-from objects import property
-from geometry import vector_3d
-from geometry import plane
+import numpy as np
+
+from geometry import vector_3d # pylint: disable=import-error
+from geometry import plane # pylint: disable=import-error
+from objects import properties # pylint: disable=import-error
 
 class Node:
     """
@@ -20,9 +24,13 @@ class Node:
 
 
     def to_string(self):
+        """This module contains the functions for the geometrical manipulation of vectors."""
+
         return f'Node at ({self.x},{self.y},{self.z})'
-    
+
     def to_array(self):
+        """This module contains the functions for the geometrical manipulation of vectors."""
+
         return np.array([self.x,self.y,self.z])
 
 
@@ -31,15 +39,21 @@ class Bar:
         Creates a bar object.
     """
 
+    # pylint: disable=too-many-instance-attributes
+    # Eight is reasonable in this case.
+
     def __init__(self,
                  node_a : Node,
                  node_b : Node,
-                 section : property.Section,
+                 section : properties.Section,
                  orientation_vector : np.array,
                  release_a : str = 'XXXXXX',
                  release_b : str = 'XXXXXX',
-                 id : str = None
+                 name : str = None
                  ):
+
+        # pylint: disable=too-many-arguments
+        # Eight is reasonable in this case.
 
         self.node_a = node_a
         self.node_b = node_b
@@ -47,24 +61,31 @@ class Bar:
         self.orientation_vector = orientation_vector
         self.release_a = release_a
         self.release_b = release_b
-        self.id = id if id is not None else str(uuid.uuid4())
+        self.name = name if name is not None else str(uuid.uuid4())
         self.length = vector_3d.length(node_a.to_array(),node_b.to_array())
 
 
     def local_stiffness_matrix(self):
-        
-        A = self.section.area
-        E = self.section.material.youngs_modulus * 1000000 #FIX UNITS
-        Iz = self.section.izz
-        Iy = self.section.iyy
-        G =  self.section.material.shear_modulus * 1000000 #FIX UNITS
-        J =  Iz + Iy
-        L = self.length
+        """
+        This module contains the functions for the geometrical manipulation of vectors.
+        """
+        # pylint: disable=too-many-locals
+        # Seven is reasonable in this case.
+
+        #Fix units for E and G <--------
+
+        A = self.section.area # pylint: disable=invalid-name
+        E = self.section.material.youngs_modulus * 1000000 # pylint: disable=invalid-name
+        Iz = self.section.izz # pylint: disable=invalid-name
+        Iy = self.section.iyy # pylint: disable=invalid-name
+        G =  self.section.material.shear_modulus * 1000000 # pylint: disable=invalid-name
+        J =  Iz + Iy # pylint: disable=invalid-name
+        L = self.length # pylint: disable=invalid-name
 
         # Axial coefficient
-        
-        a1 = E*A/L 
-        
+
+        a1 = E*A/L
+
         #Torsional coefficient
         t1 = G*J/L
 
@@ -75,7 +96,7 @@ class Bar:
         #Shear coeffiecient - Minor Axis
         v3 = 12*E*Iy/L**3
         v4 = 6*E*Iy/L**2
-        
+
         #Moment coeffiecient - Major Axis
         m1 = 6*E*Iz/L**2
         m2 = 4*E*Iz/L
@@ -88,7 +109,7 @@ class Bar:
 
 
         #Build local stiffness matrix
-        Kl = [[  a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ],
+        kl = [[  a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -a1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ],
                 [ 0.0 ,  v1 , 0.0 , 0.0 , 0.0 , -m1 , 0.0 , -v1 , 0.0 , 0.0 , 0.0 , -m1 ],
                 [ 0.0 , 0.0 ,  v3 , 0.0 ,  m4 , 0.0 , 0.0 , 0.0 , -v3 , 0.0 ,  m4 , 0.0 ],
                 [ 0.0 , 0.0 , 0.0 ,  t1 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , -t1 , 0.0 , 0.0 ],
@@ -102,54 +123,56 @@ class Bar:
                 [ 0.0 , -v2 , 0.0 , 0.0 , 0.0 ,  m3 , 0.0 ,  v2 , 0.0 , 0.0 , 0.0 ,  m2 ],
                 ]
 
-
         #Remove released coefficients
-        
+
         combined_release_string = self.release_a + self.release_b
 
         count = 0
 
         for char in combined_release_string:
 
-            if (char == "F"):
+            if char == "F":
 
-                divisor = Kl[count,count]
+                divisor = kl[count,count]# pylint: disable=invalid-sequence-index
 
-                row_values = np.divide(Kl[count,:],divisor)
-                col_values = Kl[:,count]
+                row_values = np.divide(kl[count,:],divisor)# pylint: disable=invalid-sequence-index
+                col_values = kl[:,count]# pylint: disable=invalid-sequence-index
 
                 subtraction_vector = np.outer(col_values,row_values)
 
-                Kl = np.subtract(Kl,subtraction_vector)
-                
+                kl = np.subtract(kl,subtraction_vector)
+
 
             count += 1
 
-        return Kl
+        return kl
 
     def transformation_matrix(self):
+        """
+        This module contains the functions for the geometrical manipulation of vectors.
+        """
 
         #Build the full transformation matrix for this element
-        TM = np.zeros((12,12))
+        tm = np.zeros((12,12))
 
         local_plane = plane.plane_from_3pt(self.node_a.to_array(),
-                                                       self.node_b.to_array(), 
-                                                       self.orientation_vector, 
+                                                       self.node_b.to_array(),
+                                                       self.orientation_vector,
                                                        True
                                                        )
 
-        T_repeat =  np.array([local_plane[1],
+        t_repeat =  np.array([local_plane[1],
                             local_plane[2],
                             local_plane[3]]
                             )
-        
 
-        TM[0:3,0:3] = T_repeat
-        TM[3:6,3:6] = T_repeat
-        TM[6:9,6:9] = T_repeat
-        TM[9:12,9:12] = T_repeat
 
-        return TM
+        tm[0:3,0:3] = t_repeat
+        tm[3:6,3:6] = t_repeat
+        tm[6:9,6:9] = t_repeat
+        tm[9:12,9:12] = t_repeat
+
+        return tm
 
 
 class Support:
@@ -158,17 +181,20 @@ class Support:
         Each degree of freedom is represented by a bool.
         True = fixed, False = released.
     """
-    
-    def __init__(self, 
+
+    def __init__(self,
                  node : Node,
                  fx : bool,
                  fy : bool,
                  fz : bool,
                  mx : bool,
                  my : bool,
-                 mz : bool                 
+                 mz : bool
                  ):
-        
+
+        # pylint: disable=too-many-arguments
+        # Seven is reasonable in this case.
+
         self.node = node
         self.fx = fx
         self.fy = fy
@@ -178,6 +204,11 @@ class Support:
         self.mz = mz
 
     def set_fix(self):
+        """
+        Creates a 6 degeree of freedom node support object. 
+        Each degree of freedom is represented by a bool.
+        True = fixed, False = released.
+        """
         self.fx = True
         self.fy = True
         self.fz = True
@@ -186,6 +217,11 @@ class Support:
         self.mz = True
 
     def set_pin(self):
+        """
+        Creates a 6 degeree of freedom node support object. 
+        Each degree of freedom is represented by a bool.
+        True = fixed, False = released.
+        """
         self.fx = True
         self.fy = True
         self.fz = True
@@ -196,7 +232,13 @@ class Support:
     @staticmethod
 
     def pin(node):
+        # pylint: disable=no-self-argument
+        """This module contains the functions for the geometrical manipulation of vectors."""
+
         return Support(node,True,True,True,False,False,False)
-    
+
     def fix(node):
+        # pylint: disable=no-self-argument
+        """This module contains the functions for the geometrical manipulation of vectors."""
+
         return Support(node,True,True,True,True,True,True)

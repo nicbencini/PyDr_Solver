@@ -1,14 +1,14 @@
 import sqlite3
 import numpy as np
 import warnings
-from objects import property
+from objects import properties
 from objects import element
 
 def get_material(database, material_name):
 
     material_cursor = database.connection.cursor()
     material_data = material_cursor.execute("SELECT * FROM property_material WHERE _id = ?",[material_name]).fetchone()
-    material_object = property.Material(*material_data)
+    material_object = properties.Material(*material_data)
     material_cursor.close()
 
     return material_object
@@ -19,7 +19,7 @@ def get_section(database, section_name):
     section_data = section_cursor.execute("SELECT * FROM property_section WHERE _id = ?",[section_name]).fetchone()
     section_data = list(section_data)
     section_data[1] = get_material(database, section_data[1])
-    section_object = property.Section(*section_data)
+    section_object = properties.Section(*section_data)
     section_cursor.close()
 
     return section_object

@@ -10,7 +10,7 @@ sys.path.append(parent_dir + '/scpyce')
 from model import database
 from engine import lind_solver
 from objects import element
-from objects import property
+from objects import properties
 from objects import load
 
 db_path = os.path.dirname(os.path.realpath(__file__)) +'/test_files/'+ 'database_2_lind_solver_test.db'
@@ -26,7 +26,7 @@ class LindSolverTests(unittest.TestCase):
         node4 = element.Node(1,1,0)
         node5 = element.Node(0,1,0)
 
-        section = property.Section.default()
+        section = properties.Section.default()
         orientation_vector = np.array([1,0,0])
 
         bar1 = element.Bar(node1,node2,section,orientation_vector)

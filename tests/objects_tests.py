@@ -9,7 +9,7 @@ sys.path.append(parent_dir + '/scpyce')
 
 
 from objects import element
-from objects import property
+from objects import properties
 from objects import load
 
 class ElementTests(unittest.TestCase):
@@ -21,7 +21,7 @@ class ElementTests(unittest.TestCase):
 
         node1 = element.Node(0,0,0)
         node2 = element.Node(0,0,1)
-        section = property.Section.default()
+        section = properties.Section.default()
         orientation_vector = np.array([1,0,0])
 
         bar = element.Bar(node1,node2,section,orientation_vector)
@@ -42,7 +42,7 @@ class ElementTests(unittest.TestCase):
 
         node1 = element.Node(0.5,0.5,1)
         node2 = element.Node(1,0,0)
-        section = property.Section.default()
+        section = properties.Section.default()
         orientation_vector = np.array([0,0,1])
 
         bar1 = element.Bar(node1,node2,section,orientation_vector)
