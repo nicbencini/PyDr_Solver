@@ -1,27 +1,29 @@
-import time
-import numpy as np
+"""
+Module Description
+"""
+
 import os
-import sys
 import unittest
+import numpy as np
 
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(parent_dir + '/scpyce')
-
-from model import database
-from engine import lind_solver
-from objects import element
-from objects import properties
-from objects import load
+from context import database # pylint: disable=import-error
+from context import lind_solver # pylint: disable=import-error
+from context import element # pylint: disable=import-error
+from context import properties # pylint: disable=import-error
+from context import load # pylint: disable=import-error
 
 db_path = os.path.dirname(os.path.realpath(__file__)) +'/test_files/'+ 'database_2_lind_solver_test.db'
 
 class LindSolverTests(unittest.TestCase):
+    """
+    Class Description
+    """
 
     def test_build_database(self):
-        
+        """Description"""
 
         node1 = element.Node(0.5,0.5,1)
-        node2 = element.Node(1,0,0) 
+        node2 = element.Node(1,0,0)
         node3 = element.Node(0,0,0)
         node4 = element.Node(1,1,0)
         node5 = element.Node(0,1,0)
@@ -32,7 +34,7 @@ class LindSolverTests(unittest.TestCase):
         bar1 = element.Bar(node1,node2,section,orientation_vector)
         bar2 = element.Bar(node1,node3,section,orientation_vector)
         bar3 = element.Bar(node1,node4,section,orientation_vector)
-        
+
         bar4 = element.Bar(node1,node5,section,orientation_vector)
 
         support1 = element.Support.pin(node2)
@@ -61,14 +63,15 @@ class LindSolverTests(unittest.TestCase):
 
 
     def test_build_global_stiffness_matrix(self):
-        
+        """Description"""
+
         structural_model = database.Model(db_path)
 
-        D = lind_solver.solve(structural_model)
+        result = lind_solver.solve(structural_model)
 
-        #print (D)
+        #print (result)
 
-        structural_model.close_connection()  
+        structural_model.close_connection()
 
 
 if __name__ == '__main__':

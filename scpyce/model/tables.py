@@ -1,3 +1,6 @@
+"""
+    Description
+"""
 import sqlite3
 
 def build_bar_table(connection):
@@ -144,7 +147,7 @@ def build_node_displacements_table(connection):
     cur = connection.cursor()
 
     # create the database table if it doesn't exist
-    results_node_displacements = """ 
+    results_node_displacements = """
         CREATE TABLE IF NOT EXISTS result_node_displacement (
         node_index int NOT NULL,
         load_case string NOT NULL,
@@ -155,7 +158,7 @@ def build_node_displacements_table(connection):
         ry float NOT NULL,
         rz float NOT NULL
         ); """
-    
+
     cur.execute(results_node_displacements)
 
     cur.close()
@@ -168,7 +171,7 @@ def build_node_reactions_table(connection):
     cur = connection.cursor()
 
     # create the database table if it doesn't exist
-    results_node_reactions = """ CREATE TABLE IF NOT EXISTS 
+    results_node_reactions = """ CREATE TABLE IF NOT EXISTS
         result_node_reactions (
         node_index int NOT NULL,
         load_case string NOT NULL,
@@ -179,10 +182,7 @@ def build_node_reactions_table(connection):
         my float NOT NULL,
         mz float NOT NULL
         ); """
-    
+
     cur.execute(results_node_reactions)
 
     cur.close()
-
-
-        

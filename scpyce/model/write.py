@@ -1,8 +1,10 @@
+"""
+Description
+"""
+
+import warnings
 import sqlite3
 import numpy as np
-import warnings
-from objects import properties
-from objects import element
 
 def add_bar(database, bar):
     """
@@ -22,7 +24,7 @@ def add_bar(database, bar):
         WHERE (node_a = ?)
         AND (node_b = ?)
         """
-    
+
     bar_check_result = cur.execute(bar_check_query,(node_a_index, node_b_index)).fetchone()
 
 
@@ -30,7 +32,7 @@ def add_bar(database, bar):
 
         bar_id = bar_check_result[0]
         warnings.warn(f'Bar not added because of overlap with bar {bar_id}.')
-    
+
     else:
 
         add_section(database, bar.section) # add section to database
@@ -41,8 +43,15 @@ def add_bar(database, bar):
             VALUES 
             (?,?,?,?,?,?,?)
             """
-        
-        bar_value_string = (bar.id, node_a_index, node_b_index, bar.section.name, np.array2string(bar.orientation_vector), bar.release_a, bar.release_b)
+
+        bar_value_string = (bar.id,
+                            node_a_index,
+                            node_b_index,
+                            bar.section.name,
+                            np.array2string(bar.orientation_vector),
+                            bar.release_a,
+                            bar.release_b
+                            )
 
         cur.execute(bar_query, bar_value_string)
 
@@ -54,7 +63,7 @@ def add_bar(database, bar):
     cur.close()
 
     return bar_id
-    
+
 def add_node(database, node):
     """
     Adds a node to the database. Returns the id of that node. 
@@ -81,7 +90,7 @@ def add_node(database, node):
 
 
     else:
-        
+
         node_index = cur.execute("SELECT COUNT(*) FROM element_node").fetchone()[0]
 
         node_query = """
@@ -90,7 +99,7 @@ def add_node(database, node):
             VALUES 
             (?,?,?,?)
             """
-        
+
         node_value_string = (node_index, node.x, node.y, node.z)
 
         cur.execute(node_query, node_value_string)
@@ -134,11 +143,18 @@ def add_material(database, material):
             VALUES 
             (?,?,?,?,?,?,?,?,?,?)
             """
-        
-        material_value_string = (material.name, material.youngs_modulus, material.poissons_ratio, 
-                                material.shear_modulus, material.coeff_thermal_expansion,
-                            material.damping_ratio, material.density, material.type,
-                            material.region, material.embodied_carbon)
+
+        material_value_string = (material.name,
+                                 material.youngs_modulus,
+                                 material.poissons_ratio,
+                                 material.shear_modulus,
+                                 material.coeff_thermal_expansion,
+                                 material.damping_ratio,
+                                 material.density,
+                                 material.type,
+                                 material.region,
+                                 material.embodied_carbon
+                                 )
 
         cur.execute(material_query, material_value_string)
 
@@ -183,8 +199,13 @@ def add_section(database, section):
             VALUES 
             (?,?,?,?,?)
             """
-        
-        section_value_string = (section.name, section.material.name, section.area, section.izz, section.iyy)
+
+        section_value_string = (section.name,
+                                section.material.name,
+                                section.area,
+                                section.izz,
+                                section.iyy
+                                )
 
         cur.execute(section_query, section_value_string)
 
@@ -197,89 +218,103 @@ def add_section(database, section):
     return section_name
 
 def add_support(database, support):
+    """
+    Adds a support to the database. Returns the id of the node of the support. 
+    If the node already exists it will return the id of the existing node.
+    """
+
+    node_index = None
+
+    cur = database.connection.cursor()
+
+    support_check_query = """
+        SELECT node_index
+        FROM element_support
+        WHERE (node_index = ?)
         """
-        Adds a support to the database. Returns the id of the node of the support. 
-        If the node already exists it will return the id of the existing node.
-        """
 
-        node_index = None
+    node_index = add_node(database, support.node)
 
-        cur = database.connection.cursor()
+    support_check_result = cur.execute(support_check_query, [node_index]).fetchone()
 
-        support_check_query = """
-            SELECT node_index
-            FROM element_support
-            WHERE (node_index = ?)
+    if support_check_result is not None:
+
+        support_index = support_check_result[0]
+
+    else:
+
+        support_query = """
+        INSERT INTO element_support (
+            node_index, fx, fy, fz, mx, my, mz) 
+            VALUES 
+            (?,?,?,?,?,?,?)
             """
 
-        node_index = add_node(database, support.node)
+        support_value_string = (node_index,
+                                support.fx,
+                                support.fy,
+                                support.fz,
+                                support.mx,
+                                support.my,
+                                support.mz
+                                )
 
-        support_check_result = cur.execute(support_check_query, [node_index]).fetchone()
-
-        if support_check_result is not None:
-
-            support_index = support_check_result[0]
-
-        else:
-
-            support_query = """
-            INSERT INTO element_support (
-                node_index, fx, fy, fz, mx, my, mz) 
-                VALUES 
-                (?,?,?,?,?,?,?)
-                """
-            
-            support_value_string = (node_index, support.fx, support.fy, support.fz, support.mx, support.my, support.mz)
-
-            cur.execute(support_query, support_value_string)
+        cur.execute(support_query, support_value_string)
 
 
-        database.connection.commit()
+    database.connection.commit()
 
-        cur.close()
+    cur.close()
 
-        return node_index
+    return node_index
 
 def add_point_load(database, pointload):
+    """
+    Adds a point load to the database. Returns the id of the node of the point load. 
+    If the node already exists it will return the id of the existing node.
+    """
+
+    node_index = None
+
+    cur = database.connection.cursor()
+
+    pointload_check_query = """
+        SELECT node_index
+        FROM load_pointload
+        WHERE (node_index = ?)
         """
-        Adds a point load to the database. Returns the id of the node of the point load. 
-        If the node already exists it will return the id of the existing node.
-        """
 
-        node_index = None
+    node_index = add_node(database, pointload.node)
 
-        cur = database.connection.cursor()
+    pointload_check_result = cur.execute(pointload_check_query, [node_index]).fetchone()
 
-        pointload_check_query = """
-            SELECT node_index
-            FROM load_pointload
-            WHERE (node_index = ?)
+    if pointload_check_result is not None:
+
+        pointload_index = pointload_check_result[0]
+
+    else:
+
+        pointload_query = """
+        INSERT INTO load_pointload (
+            node_index, fx, fy, fz, mx, my, mz) 
+            VALUES 
+            (?,?,?,?,?,?,?)
             """
 
-        node_index = add_node(database, pointload.node)
+        pointload_value_string = (node_index,
+                                  pointload.fx,
+                                  pointload.fy,
+                                  pointload.fz,
+                                  pointload.mx,
+                                  pointload.my,
+                                  pointload.mz
+                                  )
 
-        pointload_check_result = cur.execute(pointload_check_query, [node_index]).fetchone()
-
-        if pointload_check_result is not None:
-
-            pointload_index = pointload_check_result[0]
-
-        else:
-
-            pointload_query = """
-            INSERT INTO load_pointload (
-                node_index, fx, fy, fz, mx, my, mz) 
-                VALUES 
-                (?,?,?,?,?,?,?)
-                """
-            
-            pointload_value_string = (node_index, pointload.fx, pointload.fy, pointload.fz, pointload.mx, pointload.my, pointload.mz)
-
-            cur.execute(pointload_query, pointload_value_string)
+        cur.execute(pointload_query, pointload_value_string)
 
 
-        database.connection.commit()
+    database.connection.commit()
 
-        cur.close()
+    cur.close()
 
-        return node_index
+    return node_index

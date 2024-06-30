@@ -10,7 +10,7 @@ from objects import properties # pylint: disable=import-error
 
 class Node:
     """
-        Creates a node object.
+    Creates a node object.
     """
 
     def __init__(self,
